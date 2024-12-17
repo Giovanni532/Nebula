@@ -1,16 +1,68 @@
-import { View, Text, StyleSheet, Platform, StatusBar, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Platform, StatusBar, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/Colors';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useState } from 'react';
+import { WalletSelector } from '@/components/wallet/WalletSelector';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MAX_TRANSLATE_Y = -SCREEN_HEIGHT + 50;
 
 export default function WalletScreen() {
+  const translateY = useSharedValue(0);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const context = useSharedValue({ y: 0 });
+
+  const gesture = Gesture.Pan()
+    .onStart(() => {
+      context.value = { y: translateY.value };
+    })
+    .onUpdate((event) => {
+      if (!isOpen && event.translationY < 0) return;
+
+      const newTranslateY = event.translationY + context.value.y;
+      translateY.value = Math.min(Math.max(newTranslateY, MAX_TRANSLATE_Y), 0);
+    })
+    .onEnd((event) => {
+      const shouldClose = event.velocityY > 500 || translateY.value > -SCREEN_HEIGHT / 3;
+
+      if (shouldClose) {
+        translateY.value = withSpring(0, { damping: 50 });
+        setIsOpen(false);
+      } else {
+        translateY.value = withSpring(MAX_TRANSLATE_Y, { damping: 50 });
+      }
+    })
+    .simultaneousWithExternalGesture(Gesture.Native())
+    .enabled(isOpen);
+
+  const rBottomSheetStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateY: translateY.value }],
+    };
+  });
+
+  const openModal = () => {
+    translateY.value = withSpring(MAX_TRANSLATE_Y, { damping: 50 });
+    setIsOpen(true);
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={[Colors.dark.gradientStart, Colors.dark.gradientEnd]}
         style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.walletAddress}>0x2930...3904</Text>
+          <TouchableOpacity
+            style={styles.walletButton}
+            onPress={openModal}
+          >
+            <Text style={styles.walletAddress}>0x2930...3904</Text>
+            <FontAwesome5 name="chevron-down" size={12} color={Colors.dark.text} style={styles.walletIcon} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.balanceContainer}>
@@ -68,6 +120,11 @@ export default function WalletScreen() {
           />
         </ScrollView>
       </LinearGradient>
+
+      <WalletSelector
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+      />
     </View>
   );
 }
@@ -90,6 +147,22 @@ function AssetCard({ symbol, name, amount, change, showChart }: { symbol: string
         </Text>
       </View>
     </View>
+  );
+}
+
+function WalletItem({ address, balance, isSelected }: { address: string, balance: string, isSelected: boolean }) {
+  return (
+    <TouchableOpacity
+      style={[styles.walletItem, isSelected && styles.walletItemSelected]}
+    >
+      <View style={styles.walletItemLeft}>
+        <Text style={styles.walletItemAddress}>{address}</Text>
+        <Text style={styles.walletItemBalance}>{balance}</Text>
+      </View>
+      {isSelected && (
+        <FontAwesome5 name="check" size={16} color={Colors.dark.primary} />
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -220,5 +293,71 @@ const styles = StyleSheet.create({
   assetChange: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  walletButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  walletIcon: {
+    marginLeft: 8,
+  },
+  bottomSheet: {
+    position: 'absolute',
+    top: SCREEN_HEIGHT,
+    backgroundColor: Colors.dark.card,
+    width: '100%',
+    height: SCREEN_HEIGHT,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    zIndex: 1,
+  },
+  line: {
+    width: 75,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignSelf: 'center',
+    marginVertical: 15,
+    borderRadius: 2,
+  },
+  modalTitle: {
+    color: Colors.dark.text,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  walletList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  walletItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  walletItemSelected: {
+    borderColor: Colors.dark.primary,
+    borderWidth: 1,
+  },
+  walletItemLeft: {
+    flex: 1,
+  },
+  walletItemAddress: {
+    color: Colors.dark.text,
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  walletItemBalance: {
+    color: Colors.dark.secondaryText,
+    fontSize: 14,
   },
 });
