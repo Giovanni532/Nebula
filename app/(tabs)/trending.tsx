@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform, StatusBar } from 'react-native';
 import Colors from '@/constants/Colors';
 
 export default function TrendingScreen() {
@@ -14,6 +14,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.dark.background,
         padding: 20,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 20 : 60,
     },
     title: {
         fontSize: 24,
