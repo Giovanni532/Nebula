@@ -1,10 +1,10 @@
-# NEBUL - Application de Trading Crypto
+# NEBULA - Application de Trading Crypto
 
 ![License](https://img.shields.io/badge/License-Proprietary-red.svg)
 
 ## Description
 
-NEBUL est une application de trading de cryptomonnaies sophistiquée, conçue pour offrir une expérience premium similaire à Phantom. Cette application propose des fonctionnalités avancées de trading et de suivi des cryptomonnaies dans une interface moderne et élégante.
+NEBULA est une application de trading de cryptomonnaies sophistiquée, conçue pour offrir une expérience premium similaire à Phantom. Cette application propose des fonctionnalités avancées de trading et de suivi des cryptomonnaies dans une interface moderne et élégante.
 
 ## Fonctionnalités Principales
 

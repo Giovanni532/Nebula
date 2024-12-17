@@ -20,7 +20,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tint,
         tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
-        tabBarShowLabel: false, // Cache les labels des tabs
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: Colors[colorScheme].card,
           borderTopColor: Colors[colorScheme].border,
@@ -38,6 +38,15 @@ export default function TabLayout() {
         options={{
           title: 'Wallet',
           tabBarIcon: ({ color }) => <TabBarIcon name="wallet" color={color} />,
+          headerShown: false,
+        }}
+      />
+
+      <Tabs.Screen
+        name="swap"
+        options={{
+          title: 'Swap',
+          tabBarIcon: ({ color }) => <TabBarIcon name="exchange-alt" color={color} />,
           headerShown: false,
         }}
       />
