@@ -62,13 +62,14 @@ function RootLayoutNav() {
         <Stack
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#121212',
+              backgroundColor: Colors[colorScheme as keyof typeof Colors].card,
             },
-            headerTintColor: '#F5F5F5',
+            headerTintColor: Colors[colorScheme as keyof typeof Colors].text,
             contentStyle: {
-              backgroundColor: '#121212',
+              backgroundColor: Colors[colorScheme as keyof typeof Colors].background,
             },
           }}>
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
