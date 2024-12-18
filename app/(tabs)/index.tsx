@@ -6,6 +6,7 @@ import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reani
 import { Gesture } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { WalletSelector } from '@/components/wallet/WalletSelector';
+import { AnimatedAmount } from '@/components/wallet/AnimatedAmount';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_TRANSLATE_Y = -SCREEN_HEIGHT + 50;
@@ -66,8 +67,13 @@ export default function WalletScreen() {
         </View>
 
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceLabel}>Current Wallet Balance</Text>
-          <Text style={styles.balanceAmount}>$12,490.20</Text>
+          <Text style={styles.balanceLabel}>Total Balance</Text>
+          <AnimatedAmount
+            value={245.8}
+            precision={1}
+            suffix=" $"
+            style={styles.balanceAmount}
+          />
           <View style={styles.percentageContainer}>
             <FontAwesome5 name="arrow-up" size={12} color={Colors.dark.success} />
             <Text style={styles.percentageText}>12.55%</Text>
@@ -98,24 +104,24 @@ export default function WalletScreen() {
 
         <ScrollView style={styles.assetsContainer}>
           <AssetCard
-            symbol="BTC"
-            name="Bitcoin"
-            amount="$12,490.20"
+            symbol="SOL"
+            name="Solana"
+            amount="245.8 SOL"
             change="+8.40%"
             showChart
           />
           <AssetCard
-            symbol="ETH"
-            name="Ethereum"
-            amount="$490.20"
-            change="+8.40%"
+            symbol="BONK"
+            name="Bonk"
+            amount="1,250,490 BONK"
+            change="+12.40%"
             showChart
           />
           <AssetCard
-            symbol="TET"
-            name="Tether"
-            amount="$3,430.20"
-            change="+8.40%"
+            symbol="RAY"
+            name="Raydium"
+            amount="145.6 RAY"
+            change="+5.20%"
             showChart
           />
         </ScrollView>

@@ -71,18 +71,18 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
                     <Text style={styles.modalTitle}>Select Wallet</Text>
                     <ScrollView style={styles.walletList}>
                         <WalletItem
-                            address="0x2930...3904"
-                            balance="$12,490.20"
+                            address="CuieVDEDtLo7FypA9SbLM9saXFdb1dsshEkyErMqkRQq"
+                            balance="245.8 SOL"
                             isSelected={true}
                         />
                         <WalletItem
-                            address="0x1234...5678"
-                            balance="$5,230.50"
+                            address="9ZNTfG4NyQgxy2SWjSiQoUyBPEvXT2xKYP6jGA5WHgl"
+                            balance="180.5 SOL"
                             isSelected={false}
                         />
                         <WalletItem
-                            address="0x5678...9012"
-                            balance="$3,120.80"
+                            address="H8zGp8mRQQgX4MZT3BUjCwTNwKqpgLcuKoP5eVzuu8Xk"
+                            balance="95.2 SOL"
                             isSelected={false}
                         />
                     </ScrollView>

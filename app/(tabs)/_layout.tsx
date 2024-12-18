@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="swap"
         options={{
-          title: 'Swap',
+          title: 'SPL Swap',
           tabBarIcon: ({ color }) => <TabBarIcon name="exchange-alt" color={color} />,
           headerShown: false,
         }}
@@ -54,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="whale-tracker"
         options={{
-          title: 'Whale Tracker',
+          title: 'SOL Tracker',
           tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
           headerShown: false,
         }}
