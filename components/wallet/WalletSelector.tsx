@@ -1,9 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Platform, Alert, TextInput } from 'react-native';
 import Animated, { withSpring, useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Colors from '@/constants/Colors';
 import { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useWallets } from '@/contexts/WalletContext';
+import { WalletData } from '@/utils/wallet';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -14,18 +15,26 @@ type WalletSelectorProps = {
 
 type WalletItemProps = {
     address: string;
+    name: string;
     balance: string;
     isSelected: boolean;
     onSelect?: () => void;
+    onEditName?: () => void;
 };
 
-function WalletItem({ address, balance, isSelected, onSelect }: WalletItemProps) {
+function WalletItem({ address, name, balance, isSelected, onSelect, onEditName }: WalletItemProps) {
     return (
         <TouchableOpacity
             style={[styles.walletItem, isSelected && styles.walletItemSelected]}
             onPress={onSelect}
         >
             <View style={styles.walletItemLeft}>
+                <View style={styles.walletItemHeader}>
+                    <Text style={styles.walletItemName}>{name}</Text>
+                    <TouchableOpacity onPress={onEditName}>
+                        <FontAwesome5 name="edit" size={14} color={Colors.dark.secondaryText} />
+                    </TouchableOpacity>
+                </View>
                 <Text style={styles.walletItemAddress}>{address}</Text>
                 <Text style={styles.walletItemBalance}>{balance}</Text>
             </View>
@@ -37,24 +46,9 @@ function WalletItem({ address, balance, isSelected, onSelect }: WalletItemProps)
 }
 
 export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
+    const { wallets, currentWallet, switchWallet, updateWallets } = useWallets();
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const [isVisible, setIsVisible] = useState(false);
-    const [wallets, setWallets] = useState<string[]>([]);
-
-    useEffect(() => {
-        loadWallets();
-    }, []);
-
-    const loadWallets = async () => {
-        try {
-            const savedWallets = await AsyncStorage.getItem('wallets');
-            if (savedWallets) {
-                setWallets(JSON.parse(savedWallets));
-            }
-        } catch (error) {
-            console.error('Erreur lors du chargement des wallets:', error);
-        }
-    };
 
     useEffect(() => {
         if (isOpen) {
@@ -73,6 +67,38 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
         };
     });
 
+    const handleWalletSelect = async (publicKey: string) => {
+        await switchWallet(publicKey);
+        onClose();
+    };
+
+    const handleEditName = (wallet: WalletData) => {
+        Alert.prompt(
+            'Modifier le nom',
+            'Entrez un nouveau nom pour ce wallet',
+            [
+                {
+                    text: 'Annuler',
+                    style: 'cancel'
+                },
+                {
+                    text: 'Modifier',
+                    onPress: async (newName?: string) => {
+                        if (newName?.trim()) {
+                            const updatedWallet = {
+                                ...wallet,
+                                name: newName.trim()
+                            };
+                            await updateWallets(updatedWallet);
+                        }
+                    }
+                }
+            ],
+            'plain-text',
+            wallet.name
+        );
+    };
+
     if (!isVisible) return null;
 
     return (
@@ -90,13 +116,15 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
                         {wallets.length === 0 ? (
                             <Text style={styles.emptyText}>Aucun wallet trouvé</Text>
                         ) : (
-                            wallets.map((address, index) => (
+                            wallets.map((wallet) => (
                                 <WalletItem
-                                    key={index}
-                                    address={address}
-                                    balance="245.8 SOL"
-                                    isSelected={false}
-                                    onSelect={() => {/* TODO: Implémenter la sélection */ }}
+                                    key={wallet.publicKey}
+                                    address={wallet.publicKey}
+                                    name={wallet.name}
+                                    balance={`${wallet.balance} SOL`}
+                                    isSelected={currentWallet?.publicKey === wallet.publicKey}
+                                    onSelect={() => handleWalletSelect(wallet.publicKey)}
+                                    onEditName={() => handleEditName(wallet)}
                                 />
                             ))
                         )}
@@ -180,10 +208,20 @@ const styles = StyleSheet.create({
     walletItemLeft: {
         flex: 1,
     },
-    walletItemAddress: {
+    walletItemHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    walletItemName: {
         color: Colors.dark.text,
         fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '600',
+    },
+    walletItemAddress: {
+        color: Colors.dark.secondaryText,
+        fontSize: 14,
         marginBottom: 4,
     },
     walletItemBalance: {

@@ -8,7 +8,13 @@ interface ConnectionContextState {
 const ConnectionContext = createContext<ConnectionContextState>({} as ConnectionContextState);
 
 export function ConnectionProvider({ children }: { children: React.ReactNode }) {
-    const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
+    const rpcEndpoint = 'https://api.mainnet-beta.solana.com';
+
+    const connection = new Connection(rpcEndpoint, {
+        commitment: 'confirmed',
+        wsEndpoint: rpcEndpoint.replace('https', 'wss'),
+        confirmTransactionInitialTimeout: 100,
+    });
 
     return (
         <ConnectionContext.Provider value={{ connection }}>

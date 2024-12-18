@@ -20,33 +20,6 @@ export interface WalletData {
     }>;
 }
 
-export async function generateNewWallet(connection: Connection, name?: string): Promise<WalletData> {
-    try {
-        const keypair = Keypair.generate();
-        const privateKeyBase58 = bs58.encode(keypair.secretKey);
-        const publicKey = keypair.publicKey;
-
-        const balance = await connection.getBalance(publicKey);
-        const tokens = await getTokensForWallet(publicKey.toString(), connection);
-
-        const walletData: WalletData = {
-            name: name?.trim() || `Solana Wallet ${publicKey.toString().slice(0, 6)}`,
-            publicKey: publicKey.toString(),
-            privateKey: privateKeyBase58,
-            balance: balance / LAMPORTS_PER_SOL,
-            tokens
-        };
-
-        await AsyncStorage.setItem('currentWallet', JSON.stringify(walletData));
-        await AsyncStorage.setItem('hasWallet', 'true');
-
-        return walletData;
-    } catch (error) {
-        console.error('Erreur lors de la création du wallet:', error);
-        throw error;
-    }
-}
-
 export function validatePrivateKey(key: string): boolean {
     try {
         const bytes = bs58.decode(key);
@@ -58,7 +31,10 @@ export function validatePrivateKey(key: string): boolean {
 
 export async function importWalletFromPrivateKey(privateKey: string, connection: Connection, name?: string): Promise<WalletData> {
     try {
+        console.log('Début de l\'importation du wallet avec la clé privée:', privateKey);
+
         if (!validatePrivateKey(privateKey)) {
+            console.error('Clé privée invalide:', privateKey);
             throw new Error('Format de clé privée invalide');
         }
 
@@ -66,23 +42,82 @@ export async function importWalletFromPrivateKey(privateKey: string, connection:
         const keypair = Keypair.fromSecretKey(privateKeyBytes);
         const publicKey = keypair.publicKey;
 
-        const balance = await connection.getBalance(publicKey);
-        const tokens = await getTokensForWallet(publicKey.toString(), connection);
+        console.log('Clé publique générée:', publicKey.toString());
+
+        // Récupérer d'abord la balance avec retry
+        let balance = 0;
+        try {
+            balance = await connection.getBalance(publicKey);
+        } catch (error) {
+            console.warn('Erreur lors de la récupération de la balance, utilisation de 0:', error);
+        }
+
+        // Récupérer ensuite les tokens avec retry
+        let tokens: Array<{
+            name: string;
+            symbol: string;
+            balance: number;
+            priceUSD: number;
+            logoURI: string;
+            isFun: boolean;
+        }> = [];
+        try {
+            tokens = await getTokensForWallet(publicKey.toString(), connection);
+        } catch (error) {
+            console.warn('Erreur lors de la récupération des tokens, utilisation d\'un tableau vide:', error);
+        }
 
         const walletData: WalletData = {
             name: name?.trim() || `Solana Wallet ${publicKey.toString().slice(0, 6)}`,
             publicKey: publicKey.toString(),
-            privateKey: privateKey,
+            privateKey: bs58.encode(keypair.secretKey),
             balance: balance / LAMPORTS_PER_SOL,
             tokens
         };
 
-        await AsyncStorage.setItem('currentWallet', JSON.stringify(walletData));
-        await AsyncStorage.setItem('hasWallet', 'true');
-
+        console.log('Wallet importé avec succès');
         return walletData;
     } catch (error) {
         console.error('Erreur lors de l\'import du wallet:', error);
+        throw error;
+    }
+}
+
+export async function generateNewWallet(connection: Connection, name?: string): Promise<WalletData> {
+    try {
+        const keypair = Keypair.generate();
+        const publicKey = keypair.publicKey;
+
+        let balance = 0;
+        try {
+            balance = await connection.getBalance(publicKey);
+        } catch (error) {
+            console.warn('Erreur lors de la récupération de la balance, utilisation de 0:', error);
+        }
+
+        let tokens: Array<{
+            name: string;
+            symbol: string;
+            balance: number;
+            priceUSD: number;
+            logoURI: string;
+            isFun: boolean;
+        }> = [];
+        try {
+            tokens = await getTokensForWallet(publicKey.toString(), connection);
+        } catch (error) {
+            console.warn('Erreur lors de la récupération des tokens, utilisation d\'un tableau vide:', error);
+        }
+
+        return {
+            name: name?.trim() || `Solana Wallet ${publicKey.toString().slice(0, 6)}`,
+            publicKey: publicKey.toString(),
+            privateKey: bs58.encode(keypair.secretKey),
+            balance: balance / LAMPORTS_PER_SOL,
+            tokens
+        };
+    } catch (error) {
+        console.error('Erreur lors de la création du wallet:', error);
         throw error;
     }
 }
@@ -93,8 +128,10 @@ export async function importWalletFromMnemonic(mnemonic: string, connection: Con
         const keypair = Keypair.fromSeed(seed.slice(0, 32));
         const publicKey = keypair.publicKey;
 
-        const tokens = await getTokensForWallet(publicKey.toString(), connection);
-        const balance = await connection.getBalance(publicKey);
+        const [balance, tokens] = await Promise.all([
+            connection.getBalance(publicKey),
+            getTokensForWallet(publicKey.toString(), connection)
+        ]);
 
         const walletData: WalletData = {
             name: name?.trim() || `Solana Wallet ${publicKey.toString().slice(0, 6)}`,
@@ -104,9 +141,6 @@ export async function importWalletFromMnemonic(mnemonic: string, connection: Con
             balance: balance / LAMPORTS_PER_SOL,
             tokens
         };
-
-        await AsyncStorage.setItem('currentWallet', JSON.stringify(walletData));
-        await AsyncStorage.setItem('hasWallet', 'true');
 
         return walletData;
     } catch (error) {
