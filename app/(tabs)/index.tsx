@@ -2,8 +2,8 @@ import { View, Text, StyleSheet, Platform, StatusBar, ScrollView, TouchableOpaci
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/Colors';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Gesture } from 'react-native-gesture-handler';
 import { useState } from 'react';
 import { WalletSelector } from '@/components/wallet/WalletSelector';
 

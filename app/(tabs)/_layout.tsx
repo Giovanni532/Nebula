@@ -13,24 +13,24 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const colorScheme: 'light' | 'dark' = useColorScheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
+        tabBarActiveTintColor: Colors[colorScheme as keyof typeof Colors].tint,
+        tabBarInactiveTintColor: Colors[colorScheme as keyof typeof Colors].tabIconDefault,
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme].card,
-          borderTopColor: Colors[colorScheme].border,
+          backgroundColor: Colors[colorScheme as keyof typeof Colors].card,
+          borderTopColor: Colors[colorScheme as keyof typeof Colors].border,
           height: 60,
           paddingBottom: 7,
         },
         headerStyle: {
-          backgroundColor: Colors[colorScheme].card,
+          backgroundColor: Colors[colorScheme as keyof typeof Colors].card,
         },
-        headerTintColor: Colors[colorScheme].text,
+        headerTintColor: Colors[colorScheme as keyof typeof Colors].text,
       }}>
 
       <Tabs.Screen
