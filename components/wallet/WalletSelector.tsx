@@ -3,6 +3,7 @@ import Animated, { withSpring, useAnimatedStyle, useSharedValue, withTiming, run
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Colors from '@/constants/Colors';
 import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,6 +39,22 @@ function WalletItem({ address, balance, isSelected, onSelect }: WalletItemProps)
 export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const [isVisible, setIsVisible] = useState(false);
+    const [wallets, setWallets] = useState<string[]>([]);
+
+    useEffect(() => {
+        loadWallets();
+    }, []);
+
+    const loadWallets = async () => {
+        try {
+            const savedWallets = await AsyncStorage.getItem('wallets');
+            if (savedWallets) {
+                setWallets(JSON.parse(savedWallets));
+            }
+        } catch (error) {
+            console.error('Erreur lors du chargement des wallets:', error);
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -70,21 +87,19 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
                     <View style={styles.line} />
                     <Text style={styles.modalTitle}>Select Wallet</Text>
                     <ScrollView style={styles.walletList}>
-                        <WalletItem
-                            address="CuieVDEDtLo7FypA9SbLM9saXFdb1dsshEkyErMqkRQq"
-                            balance="245.8 SOL"
-                            isSelected={true}
-                        />
-                        <WalletItem
-                            address="9ZNTfG4NyQgxy2SWjSiQoUyBPEvXT2xKYP6jGA5WHgl"
-                            balance="180.5 SOL"
-                            isSelected={false}
-                        />
-                        <WalletItem
-                            address="H8zGp8mRQQgX4MZT3BUjCwTNwKqpgLcuKoP5eVzuu8Xk"
-                            balance="95.2 SOL"
-                            isSelected={false}
-                        />
+                        {wallets.length === 0 ? (
+                            <Text style={styles.emptyText}>Aucun wallet trouvé</Text>
+                        ) : (
+                            wallets.map((address, index) => (
+                                <WalletItem
+                                    key={index}
+                                    address={address}
+                                    balance="245.8 SOL"
+                                    isSelected={false}
+                                    onSelect={() => {/* TODO: Implémenter la sélection */ }}
+                                />
+                            ))
+                        )}
                     </ScrollView>
                     <View style={styles.footer}>
                         <TouchableOpacity
@@ -189,5 +204,11 @@ const styles = StyleSheet.create({
         color: Colors.dark.text,
         fontSize: 16,
         fontWeight: '600',
+    },
+    emptyText: {
+        color: Colors.dark.secondaryText,
+        fontSize: 16,
+        textAlign: 'center',
+        marginVertical: 20,
     },
 }); 

@@ -1,54 +1,67 @@
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform, StatusBar, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/Colors';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
-import { Gesture } from 'react-native-gesture-handler';
-import { useState } from 'react';
 import { WalletSelector } from '@/components/wallet/WalletSelector';
 import { AnimatedAmount } from '@/components/wallet/AnimatedAmount';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAX_TRANSLATE_Y = -SCREEN_HEIGHT + 50;
+
+type WalletData = {
+  address: string;
+  balance: number;
+  tokens: Token[];
+};
+
+type Token = {
+  symbol: string;
+  name: string;
+  amount: string;
+  dollarValue: number;
+  change: string;
+};
 
 export default function WalletScreen() {
-  const translateY = useSharedValue(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [walletData, setWalletData] = useState<WalletData | null>(null);
+  const router = useRouter();
 
-  const context = useSharedValue({ y: 0 });
+  useEffect(() => {
+    checkWalletAndLoad();
+  }, []);
 
-  const gesture = Gesture.Pan()
-    .onStart(() => {
-      context.value = { y: translateY.value };
-    })
-    .onUpdate((event) => {
-      if (!isOpen && event.translationY < 0) return;
+  const checkWalletAndLoad = async () => {
+    try {
+      const walletAddress = await AsyncStorage.getItem('currentWallet');
+      const hasWallet = await AsyncStorage.getItem('hasWallet');
 
-      const newTranslateY = event.translationY + context.value.y;
-      translateY.value = Math.min(Math.max(newTranslateY, MAX_TRANSLATE_Y), 0);
-    })
-    .onEnd((event) => {
-      const shouldClose = event.velocityY > 500 || translateY.value > -SCREEN_HEIGHT / 3;
-
-      if (shouldClose) {
-        translateY.value = withSpring(0, { damping: 50 });
-        setIsOpen(false);
-      } else {
-        translateY.value = withSpring(MAX_TRANSLATE_Y, { damping: 50 });
+      if (!hasWallet || !walletAddress) {
+        router.replace('/welcome');
+        return;
       }
-    })
-    .simultaneousWithExternalGesture(Gesture.Native())
-    .enabled(isOpen);
 
-  const rBottomSheetStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
-  });
-
-  const openModal = () => {
-    translateY.value = withSpring(MAX_TRANSLATE_Y, { damping: 50 });
-    setIsOpen(true);
+      // TODO: Charger les données du wallet
+      // Temporairement, on met des données de test
+      setWalletData({
+        address: walletAddress,
+        balance: 245.8,
+        tokens: [
+          {
+            symbol: "SOL",
+            name: "Solana",
+            amount: "245.8 SOL",
+            dollarValue: 245.8,
+            change: "+8.40%"
+          }
+        ]
+      });
+    } catch (error) {
+      console.error('Erreur:', error);
+      router.replace('/welcome');
+    }
   };
 
   return (
@@ -59,9 +72,11 @@ export default function WalletScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.walletButton}
-            onPress={openModal}
+            onPress={() => setIsOpen(true)}
           >
-            <Text style={styles.walletAddress}>0x2930...3904</Text>
+            <Text style={styles.walletAddress}>
+              {walletData?.address.slice(0, 4)}...{walletData?.address.slice(-4)}
+            </Text>
             <FontAwesome5 name="chevron-down" size={12} color={Colors.dark.text} style={styles.walletIcon} />
           </TouchableOpacity>
         </View>
@@ -69,15 +84,11 @@ export default function WalletScreen() {
         <View style={styles.balanceContainer}>
           <Text style={styles.balanceLabel}>Total Balance</Text>
           <AnimatedAmount
-            value={245.8}
-            precision={1}
+            value={walletData?.balance ?? 0}
+            precision={2}
             suffix=" $"
             style={styles.balanceAmount}
           />
-          <View style={styles.percentageContainer}>
-            <FontAwesome5 name="arrow-up" size={12} color={Colors.dark.success} />
-            <Text style={styles.percentageText}>12.55%</Text>
-          </View>
         </View>
 
         <View style={styles.actionsContainer}>
@@ -87,6 +98,7 @@ export default function WalletScreen() {
             </View>
             <Text style={styles.mainButtonText}>Receive</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.mainButton}>
             <View style={styles.mainButtonInner}>
               <FontAwesome5 name="plus" size={24} color={Colors.dark.text} />
@@ -103,27 +115,9 @@ export default function WalletScreen() {
         </View>
 
         <ScrollView style={styles.assetsContainer}>
-          <AssetCard
-            symbol="SOL"
-            name="Solana"
-            amount="245.8 SOL"
-            change="+8.40%"
-            showChart
-          />
-          <AssetCard
-            symbol="BONK"
-            name="Bonk"
-            amount="1,250,490 BONK"
-            change="+12.40%"
-            showChart
-          />
-          <AssetCard
-            symbol="RAY"
-            name="Raydium"
-            amount="145.6 RAY"
-            change="+5.20%"
-            showChart
-          />
+          {walletData?.tokens.map((token, index) => (
+            <AssetCard key={index} {...token} showChart={true} />
+          ))}
         </ScrollView>
       </LinearGradient>
 
@@ -310,16 +304,6 @@ const styles = StyleSheet.create({
   },
   walletIcon: {
     marginLeft: 8,
-  },
-  bottomSheet: {
-    position: 'absolute',
-    top: SCREEN_HEIGHT,
-    backgroundColor: Colors.dark.card,
-    width: '100%',
-    height: SCREEN_HEIGHT,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    zIndex: 1,
   },
   line: {
     width: 75,

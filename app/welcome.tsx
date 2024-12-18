@@ -3,24 +3,52 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Colors from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { generateNewWallet } from '@/utils/wallet';
 
 export default function WelcomeScreen() {
+    const [isCreating, setIsCreating] = useState(false);
+
     useEffect(() => {
-        checkWalletStatus();
+        checkExistingWallet();
     }, []);
 
-    const checkWalletStatus = async () => {
+    const checkExistingWallet = async () => {
         const hasWallet = await AsyncStorage.getItem('hasWallet');
-        if (hasWallet) {
+        const currentWallet = await AsyncStorage.getItem('currentWallet');
+
+        if (hasWallet && currentWallet) {
             router.replace('/(tabs)');
         }
     };
 
     const handleOptionSelect = async (option: string) => {
-        // À implémenter: logique de création/import du wallet
-        await AsyncStorage.setItem('hasWallet', 'true');
-        router.replace('/(tabs)');
+        if (isCreating) return;
+
+        try {
+            setIsCreating(true);
+
+            switch (option) {
+                case 'create':
+                    const newWallet = await generateNewWallet();
+                    router.replace('/(tabs)');
+                    break;
+
+                case 'privateKey':
+                    // TODO: Implémenter l'import par clé privée
+                    router.push('/import-private-key');
+                    break;
+
+                case 'mnemonic':
+                    // TODO: Implémenter l'import par phrase mnémonique
+                    router.push('/import-mnemonic');
+                    break;
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     return (
