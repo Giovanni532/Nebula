@@ -3,29 +3,35 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useState } from 'react';
-import { Keypair } from '@solana/web3.js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { importWalletFromPrivateKey, validatePrivateKey } from '@/utils/wallet';
+import { useConnection } from '@/contexts/ConnectionContext';
+import { useWallets } from '@/contexts/WalletContext';
 
 export default function ImportPrivateKeyScreen() {
     const [privateKey, setPrivateKey] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { connection } = useConnection();
+    const { updateWallets } = useWallets();
 
     const handleImport = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
+        setError('');
+
         try {
-            const secretKey = new Uint8Array(privateKey.split(',').map(Number));
-            const keypair = Keypair.fromSecretKey(secretKey);
+            if (!validatePrivateKey(privateKey)) {
+                throw new Error('Format de clé privée invalide');
+            }
 
-            await AsyncStorage.setItem('currentWallet', keypair.publicKey.toString());
-            await AsyncStorage.setItem('hasWallet', 'true');
-
-            const existingWallets = await AsyncStorage.getItem('wallets');
-            const walletsList = existingWallets ? JSON.parse(existingWallets) : [];
-            walletsList.push(keypair.publicKey.toString());
-            await AsyncStorage.setItem('wallets', JSON.stringify(walletsList));
-
+            const walletData = await importWalletFromPrivateKey(privateKey, connection);
+            updateWallets(walletData);
             router.replace('/(tabs)');
         } catch (error) {
-            setError('Clé privée invalide');
+            console.log(error);
+            setError('Clé privée invalide ou erreur lors de l\'import');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -44,10 +50,17 @@ export default function ImportPrivateKeyScreen() {
                         value={privateKey}
                         onChangeText={setPrivateKey}
                         multiline
+                        editable={!isLoading}
                     />
                     {error ? <Text style={styles.error}>{error}</Text> : null}
-                    <TouchableOpacity style={styles.button} onPress={handleImport}>
-                        <Text style={styles.buttonText}>Importer</Text>
+                    <TouchableOpacity
+                        style={[styles.button, isLoading && styles.buttonDisabled]}
+                        onPress={handleImport}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.buttonText}>
+                            {isLoading ? 'Import en cours...' : 'Importer'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </LinearGradient>
@@ -95,5 +108,8 @@ const styles = StyleSheet.create({
         color: Colors.dark.text,
         fontSize: 16,
         fontWeight: '600',
+    },
+    buttonDisabled: {
+        opacity: 0.7,
     },
 }); 

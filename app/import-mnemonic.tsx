@@ -3,36 +3,36 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useState } from 'react';
+import { importWalletFromMnemonic } from '@/utils/wallet';
+import { useConnection } from '@/contexts/ConnectionContext';
 import * as bip39 from 'bip39';
-import { Keypair } from '@solana/web3.js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useWallets } from '@/contexts/WalletContext';
 
 export default function ImportMnemonicScreen() {
     const [mnemonic, setMnemonic] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { connection } = useConnection();
+    const { updateWallets } = useWallets();
 
     const handleImport = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
+        setError('');
+
         try {
             if (!bip39.validateMnemonic(mnemonic)) {
                 setError('Phrase mnémonique invalide');
                 return;
             }
 
-            const seed = await bip39.mnemonicToSeed(mnemonic);
-            const keypair = Keypair.fromSeed(seed.slice(0, 32));
-
-            await AsyncStorage.setItem('currentWallet', keypair.publicKey.toString());
-            await AsyncStorage.setItem('hasWallet', 'true');
-            await AsyncStorage.setItem('walletMnemonic', mnemonic);
-
-            const existingWallets = await AsyncStorage.getItem('wallets');
-            const walletsList = existingWallets ? JSON.parse(existingWallets) : [];
-            walletsList.push(keypair.publicKey.toString());
-            await AsyncStorage.setItem('wallets', JSON.stringify(walletsList));
-
+            const walletData = await importWalletFromMnemonic(mnemonic, connection);
+            updateWallets(walletData);
             router.replace('/(tabs)');
         } catch (error) {
-            setError('Erreur lors de l\'import');
+            setError('Erreur lors de l\'import du wallet');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -51,10 +51,17 @@ export default function ImportMnemonicScreen() {
                         value={mnemonic}
                         onChangeText={setMnemonic}
                         multiline
+                        editable={!isLoading}
                     />
                     {error ? <Text style={styles.error}>{error}</Text> : null}
-                    <TouchableOpacity style={styles.button} onPress={handleImport}>
-                        <Text style={styles.buttonText}>Importer</Text>
+                    <TouchableOpacity
+                        style={[styles.button, isLoading && styles.buttonDisabled]}
+                        onPress={handleImport}
+                        disabled={isLoading}
+                    >
+                        <Text style={styles.buttonText}>
+                            {isLoading ? 'Import en cours...' : 'Importer'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </LinearGradient>
@@ -102,5 +109,8 @@ const styles = StyleSheet.create({
         color: Colors.dark.text,
         fontSize: 16,
         fontWeight: '600',
+    },
+    buttonDisabled: {
+        opacity: 0.7,
     },
 }); 

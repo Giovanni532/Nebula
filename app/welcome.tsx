@@ -5,8 +5,12 @@ import Colors from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { generateNewWallet } from '@/utils/wallet';
+import { useConnection } from '@/contexts/ConnectionContext';
+import { useWallets } from '@/contexts/WalletContext';
 
 export default function WelcomeScreen() {
+    const { connection } = useConnection();
+    const { updateWallets } = useWallets();
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
@@ -30,7 +34,8 @@ export default function WelcomeScreen() {
 
             switch (option) {
                 case 'create':
-                    const newWallet = await generateNewWallet();
+                    const newWallet = await generateNewWallet(connection);
+                    updateWallets(newWallet);
                     router.replace('/(tabs)');
                     break;
 
