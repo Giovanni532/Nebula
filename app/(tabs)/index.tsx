@@ -64,6 +64,15 @@ export default function WalletScreen() {
     }
   };
 
+  const getWalletName = (addressJson: string) => {
+    try {
+      const parsed = JSON.parse(addressJson);
+      return parsed.name;
+    } catch (error) {
+      return 'Wallet';
+    }
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -75,7 +84,7 @@ export default function WalletScreen() {
             onPress={() => setIsOpen(true)}
           >
             <Text style={styles.walletAddress}>
-              {walletData?.address.slice(0, 4)}...{walletData?.address.slice(-4)}
+              {walletData?.address ? getWalletName(walletData.address) : ''}
             </Text>
             <FontAwesome5 name="chevron-down" size={12} color={Colors.dark.text} style={styles.walletIcon} />
           </TouchableOpacity>

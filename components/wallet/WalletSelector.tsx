@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Platform, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, Platform, Alert, TextInput, Modal } from 'react-native';
 import Animated, { withSpring, useAnimatedStyle, useSharedValue, withTiming, runOnJS } from 'react-native-reanimated';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Colors from '@/constants/Colors';
@@ -49,6 +49,8 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
     const { wallets, currentWallet, switchWallet, updateWallets } = useWallets();
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const [isVisible, setIsVisible] = useState(false);
+    const [editingWallet, setEditingWallet] = useState<WalletData | null>(null);
+    const [newWalletName, setNewWalletName] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -73,36 +75,62 @@ export function WalletSelector({ isOpen, onClose }: WalletSelectorProps) {
     };
 
     const handleEditName = (wallet: WalletData) => {
-        Alert.prompt(
-            'Modifier le nom',
-            'Entrez un nouveau nom pour ce wallet',
-            [
-                {
-                    text: 'Annuler',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Modifier',
-                    onPress: async (newName?: string) => {
-                        if (newName?.trim()) {
-                            const updatedWallet = {
-                                ...wallet,
-                                name: newName.trim()
-                            };
-                            await updateWallets(updatedWallet);
-                        }
-                    }
-                }
-            ],
-            'plain-text',
-            wallet.name
-        );
+        setEditingWallet(wallet);
+        setNewWalletName(wallet.name);
     };
+
+    const handleSaveWalletName = async () => {
+        if (editingWallet && newWalletName.trim()) {
+            const updatedWallet = {
+                ...editingWallet,
+                name: newWalletName.trim()
+            };
+            await updateWallets(updatedWallet);
+            setEditingWallet(null);
+        }
+    };
+
+    const renderEditModal = () => (
+        <Modal
+            visible={!!editingWallet}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setEditingWallet(null)}
+        >
+            <View style={styles.modalOverlay}>
+                <View style={styles.editModalContent}>
+                    <Text style={styles.editModalTitle}>Modifier le nom</Text>
+                    <TextInput
+                        style={styles.editModalInput}
+                        value={newWalletName}
+                        onChangeText={setNewWalletName}
+                        placeholder="Entrez un nouveau nom"
+                        placeholderTextColor={Colors.dark.secondaryText}
+                    />
+                    <View style={styles.editModalButtons}>
+                        <TouchableOpacity 
+                            style={[styles.editModalButton, styles.cancelButton]}
+                            onPress={() => setEditingWallet(null)}
+                        >
+                            <Text style={styles.editModalButtonText}>Annuler</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                            style={[styles.editModalButton, styles.saveButton]}
+                            onPress={handleSaveWalletName}
+                        >
+                            <Text style={styles.editModalButtonText}>Enregistrer</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
 
     if (!isVisible) return null;
 
     return (
         <View style={styles.modalOverlay}>
+            {renderEditModal()}
             <TouchableOpacity
                 style={styles.backdrop}
                 activeOpacity={1}
@@ -248,5 +276,47 @@ const styles = StyleSheet.create({
         fontSize: 16,
         textAlign: 'center',
         marginVertical: 20,
+    },
+    editModalContent: {
+        backgroundColor: Colors.dark.card,
+        borderRadius: 12,
+        padding: 20,
+        width: '80%',
+        alignSelf: 'center',
+    },
+    editModalTitle: {
+        color: Colors.dark.text,
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+    },
+    editModalInput: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: 8,
+        padding: 12,
+        color: Colors.dark.text,
+        marginBottom: 20,
+    },
+    editModalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    editModalButton: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginHorizontal: 5,
+    },
+    cancelButton: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    saveButton: {
+        backgroundColor: Colors.dark.primary,
+    },
+    editModalButtonText: {
+        color: Colors.dark.text,
+        fontSize: 16,
+        fontWeight: '500',
     },
 }); 
